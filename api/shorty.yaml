@@ -1,0 +1,324 @@
+openapi: 3.0.1
+info:
+  title: Shorty
+  description: 'This is the Shorty url shortener service'
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+  version: 0.0.1
+tags:
+- name: go
+  description: Redirect service.
+- name: shortlinks
+  description: Create, read, update and delete shortlinks.
+- name: check
+  description: Check for available short names.
+paths:
+  /shortlinks:
+    get:
+      description: Receive the metadata of all saved shortlinks.
+      tags: 
+        - shortlinks      
+      responses:
+        200: 
+          description: Success. Result contains the array of shortlinks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShortlinkArray'
+        500:
+          description: Internal error
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: 
+        - shortlinks
+      description: Create a new shortlink.
+      requestBody:
+        description: Shortlink update containing the fields short, long, descr.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortlinkUpdate'
+      responses:
+        201: 
+          description: Success. Shortlink created.
+        400:
+          description: Invalid short or long URL.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Shortlink with same short name exists.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /shortlinks/{short}:
+    get:
+      description: Receive the metadata of a single shortlink by its short name.
+      tags: 
+        - shortlinks
+      parameters:
+      - name: short
+        in: path
+        description: Short name of the shortlink to receive.
+        required: true
+        schema:
+          type: string      
+      responses:
+        200: 
+          description: Success. Shortlink in result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shortlink'
+        400:
+          description: Invalid short or long URL.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Short link not found.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags: 
+        - shortlinks
+      description: Update a single shortlink while retaining the access_count and created_at data.
+      parameters:
+      - name: short
+        in: path
+        description: Short name of the shortlink to update.
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Shortlink update containing the fields short, long, descr.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShortlinkUpdate'
+      responses:
+        200: 
+          description: Success. Shortlink updated, updated shortlink is returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shortlink'
+        400:
+          description: Invalid short or long URL.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        409:
+          description: Duplicate short url.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: 
+        - shortlinks
+      description: Delete a single shortlink.
+      parameters:
+      - name: short
+        in: path
+        description: Short name of the shortlink to delete.
+        required: true
+        schema:
+          type: string
+      responses:
+        200: 
+          description: Success. Field `deleted` contains the number of deleted elements (0 or 1).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Deleted'
+        400:
+          description: Invalid short link
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /go/{short}:
+    get:
+      tags: 
+        - go
+      description: Redirect to the URL stored for the requested short name.
+      parameters:
+      - name: short
+        in: path
+        description: Short name of the shortlink.
+        required: true
+        schema:
+          type: string      
+      responses:
+        307: 
+          description: Success. Redirect to stored URL.
+          headers:
+            Location:
+              description: Redirect URL
+              schema:
+                type: string
+          content:
+            text/html:
+              schema:
+                type: string
+                example: "<a href=\"http://example.com\">Temporary Redirect</a>."
+        400:
+          description: Invalid short URL. 
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        404:
+          description: Short link not found.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /check/{short}:
+    get:
+      description: Check a single short name for availability.
+      tags: 
+        - check
+      parameters:
+      - name: short
+        in: path
+        description: Short name to check for availability.
+        required: true
+        schema:
+          type: string      
+      responses:
+        200: 
+          description: Check successful. Field `free` contains the result (true/false).
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Free'
+        400:
+          description: Invalid short URL.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        500:
+          description: Other error.
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'     
+components:
+  schemas:
+    ShortlinkUpdate:
+      type: object
+      description: Request structure for creating/updating shortlinks.
+      properties:
+        short:
+          type: string
+          description: Short URL that will be served under go/{short}, must match ^[a-zA-Z0-9\\-_]+$.
+          example: excom
+        long:
+          type: string
+          description: Target URL for redirect.
+          example: http://www.example.com
+        descr:
+          type: string
+          example: "Shortlink to example.com"
+          description: Description
+    Shortlink:
+      type: object
+      description: Response structure for shortlinks.
+      properties:
+        short:
+          type: string
+          description: Short URL is served under go/{short}.
+          example: excom
+        long:
+          type: string
+          description: Target URL of redirect.
+          example: http://www.example.com
+        descr:
+          type: string
+          example: "Shortlink to example.com"
+          description: Description
+        access_count:
+          type: integer
+          example: 42
+          description: Number of times the redirect under go/{short} has been accessed.
+        created_at:
+          type: string
+          format: timestamp
+          example: "2021-09-15T17:42:24.710Z"
+          description: Timestamp of when this shortlink was created.
+        updated_at:
+          type: string
+          format: timestamp
+          example: "2021-09-15T17:42:24.710Z"
+          description: Timestamp of when this shortlink was last updated or created.
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: something went wrong
+    Free:
+      type: object
+      properties:
+        free:
+          type: boolean
+          description: True if the requested short link is available.
+          example: true
+    Deleted:
+      type: object
+      properties:
+        deleted:
+          type: integer
+          description: Number of entries deleted (0 or 1).
+          example: 1
+    ShortlinkArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/Shortlink'
+      
+          
+    
